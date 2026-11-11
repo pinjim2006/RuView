@@ -1,0 +1,54 @@
+# Original ESP32 (ESP32-WROOM-32 / Xtensa LX6) CSI Node — EXPERIMENTAL overlay
+#
+# Layered on top of sdkconfig.defaults — only the differences live here.
+# Status: UNSUPPORTED upstream (ADR-057). Not validated on real silicon until a
+# captured boot/runtime log says otherwise.
+#
+# Build (ESP-IDF shell, from firmware/esp32-csi-node):
+#   idf.py -B build-esp32 -D IDF_TARGET=esp32 -D SDKCONFIG=build-esp32/sdkconfig ^
+#     -D "SDKCONFIG_DEFAULTS=sdkconfig.defaults;sdkconfig.defaults.esp32" build
+#
+# Hardware: ESP32-WROOM-32 dev board, 4 MB flash, no PSRAM, 520 KB SRAM,
+# UART0 console through an on-board USB-UART bridge (no native USB).
+
+# ── Target ──
+CONFIG_IDF_TARGET="esp32"
+
+# ── Flash & partitions (4 MB) ──
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions_4mb.csv"
+# CONFIG_ESPTOOLPY_FLASHSIZE_8MB is not set
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="4MB"
+
+# ── Console: UART0 (this chip has no USB-Serial-JTAG) ──
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+
+# ── CSI (required) ──
+CONFIG_ESP_WIFI_CSI_ENABLED=y
+
+# ── No display, no WASM, no PSRAM ──
+# Display (ADR-045) needs an AMOLED panel. WASM3 (ADR-040) pre-allocates
+# WASM_MAX_MODULES x 160 KB arenas that fall back to the internal heap when
+# there is no PSRAM, which does not fit in 520 KB.
+# CONFIG_DISPLAY_ENABLE is not set
+# CONFIG_WASM_ENABLE is not set
+# CONFIG_SPIRAM is not set
+
+# ── Compiler ──
+CONFIG_COMPILER_OPTIMIZATION_SIZE=y
+
+# ── CPU: 240 MHz (maximum) for DSP throughput ──
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+
+# ── Logging ──
+CONFIG_BOOTLOADER_LOG_LEVEL_WARN=y
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+
+# ── lwIP / FreeRTOS — same as the S3 path ──
+CONFIG_LWIP_SO_RCVBUF=y
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+CONFIG_FREERTOS_TIMER_TASK_STACK_DEPTH=8192
+
+# Node mDNS costs ~43 KB of image; keep it off until the baseline boots.
+CONFIG_CSI_NODE_MDNS=n
